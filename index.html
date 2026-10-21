@@ -85,8 +85,25 @@
   .row-buttons button.remove { color: #b91c1c; }
   .row-buttons button:hover { text-decoration: underline; }
 
-  .totals-wrap { display: flex; justify-content: flex-end; margin-top: 8px; }
-  table.totals { font-size: 12px; border-collapse: collapse; }
+  /* Notas + totales en la misma fila */
+  .totals-wrap { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-top: 8px; }
+
+  .notes-box { flex: 1; font-size: 12px; }
+  .notes-box .notes-label { font-weight: bold; margin-bottom: 4px; }
+  .notes-box textarea {
+    width: 100%;
+    min-height: 80px;
+    border: 1px solid #999;
+    padding: 6px;
+    font-size: 12px;
+    font-family: Arial, sans-serif;
+    resize: none;
+    overflow: hidden;
+    background: transparent;
+  }
+  .notes-box textarea:focus { border-color: #b91c1c; outline: none; }
+
+  table.totals { font-size: 12px; border-collapse: collapse; flex-shrink: 0; }
   table.totals td { border: 1px solid #999; padding: 4px 8px; }
   table.totals tr td:first-child { text-align: right; font-weight: 600; }
   table.totals tr td:nth-child(2) { color: #888; text-align: right; }
@@ -94,51 +111,50 @@
   table.totals tr.grand { background: #fef9c3; font-weight: bold; }
 
   /* Sello / firma digital */
-  .sello-row { margin-top: 24px; text-align: left; }
-  .sello-row img { width: 140px; height: auto; display: block; }
+  .sello-row { margin-top: 20px; text-align: left; }
+  .sello-row img { width: 200px; height: auto; display: block; }
 
-  .footer { margin-top: 16px; padding-top: 10px; border-top: 1px solid #ddd; text-align: center; font-size: 11px; color: #666; }
+  .footer { margin-top: 12px; padding-top: 10px; border-top: 1px solid #ddd; text-align: center; font-size: 11px; color: #666; }
 
-  /* Margen 0 para que Chrome no imprima URL/fecha; el espacio lo da el padding de la hoja */
   @page { size: letter; margin: 0; }
 
-@media print {
-  html, body {
-    background: white;
-    padding: 0;
-    margin: 0;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+  @media print {
+    html, body {
+      background: white;
+      padding: 0;
+      margin: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .toolbar { display: none; }
+    .row-buttons { display: none; }
+
+    .sheet {
+      box-shadow: none;
+      max-width: 100%;
+      padding: 10mm 12mm;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    /* Compactar para que quepa en 1 página */
+    .header img { width: 65px; height: 65px; }
+    .header .titlebox .name { font-size: 30px; }
+    .slogan { margin-bottom: 8px; }
+    .titlerow { margin-bottom: 6px; }
+    .clientbox { padding: 8px; margin-bottom: 8px; }
+    .field { margin-bottom: 2px; }
+    table.items th, table.items td { padding: 2px 4px; }
+    table.items td textarea { height: 28px; }
+    .totals-wrap { margin-top: 4px; }
+    .notes-box textarea { min-height: 60px; }
+    .sello-row { margin-top: 8px; }
+    .sello-row img { width: 170px; }
+    .footer { margin-top: 6px; padding-top: 6px; }
+
+    input::placeholder,
+    textarea::placeholder { color: transparent; }
   }
-  .toolbar { display: none; }
-  .row-buttons { display: none; }
-
-  .sheet {
-    box-shadow: none;
-    max-width: 100%;
-    padding: 10mm 12mm;
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  /* Compactar para que quepa en 1 página */
-  .header img { width: 65px; height: 65px; }
-  .header .titlebox .name { font-size: 30px; }
-  .slogan { margin-bottom: 8px; }
-  .titlerow { margin-bottom: 6px; }
-  .clientbox { padding: 8px; margin-bottom: 8px; }
-  .field { margin-bottom: 2px; }
-  table.items th, table.items td { padding: 2px 4px; }
-  table.items td textarea { height: 28px; }
-  .totals-wrap { margin-top: 4px; }
-  .sello-row { margin-top: 10px; }
-  .sello-row img { width: 110px; }
-  .footer { margin-top: 8px; padding-top: 6px; }
-
-  input::placeholder,
-  textarea::placeholder { color: transparent; }
-}
-
 </style>
 </head>
 <body>
@@ -185,7 +201,7 @@
       <div>
         <div class="field wide"><label>Nombre Localidad</label><input id="c_localidad"></div>
         <div class="field wide"><label>Telefono</label><input id="c_telefono" placeholder="000-000-0000"></div>
-        
+        <div class="field wide"><label>Fax</label><input id="c_fax"></div>
       </div>
     </div>
   </div>
@@ -210,6 +226,12 @@
   </div>
 
   <div class="totals-wrap">
+    <!-- Notas para justificar precios -->
+    <div class="notes-box">
+      <div class="notes-label">Notas:</div>
+      <textarea id="notas" placeholder="Escriba aquí notas o justificación de precios..." oninput="autoGrow(this)"></textarea>
+    </div>
+
     <table class="totals">
       <tr>
         <td>Subtotal</td>
@@ -252,6 +274,12 @@
   function fmt(n) {
     n = Number(n) || 0;
     return n.toLocaleString("es-DO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  // Hace crecer el cuadro de notas según el texto
+  function autoGrow(el) {
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + 2 + "px";
   }
 
   function makeRow() {
